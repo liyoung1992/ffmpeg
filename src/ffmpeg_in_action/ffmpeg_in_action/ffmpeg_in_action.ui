@@ -1,0 +1,25 @@
+<UI version="4.0" >
+ <class>ffmpeg_in_actionClass</class>
+ <widget class="QWidget" name="ffmpeg_in_actionClass" >
+  <property name="objectName" >
+   <string notr="true">ffmpeg_in_actionClass</string>
+  </property>
+  <property name="geometry" >
+   <rect>
+	<x>0</x>
+	<y>0</y>
+	<width>600</width>
+	<height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>ffmpeg_in_action</string>
+  </property>
+ </widget>
+ <layoutDefault spacing="6" margin="11" />
+ <pixmapfunction></pixmapfunction>
+ <resources>
+   <include location="ffmpeg_in_action.qrc"/>
+ </resources>
+ <connections/>
+</UI>
