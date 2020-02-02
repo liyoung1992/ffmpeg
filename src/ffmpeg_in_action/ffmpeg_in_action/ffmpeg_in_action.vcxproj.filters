@@ -26,6 +26,9 @@
     <Filter Include="helloworld">
       <UniqueIdentifier>{26ce3468-9a16-4418-b022-c5111fde014a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ffmpeg_sdl_player">
+      <UniqueIdentifier>{bf09bbb1-7f39-456f-b2c5-9c7cd160474b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -53,6 +56,9 @@
   <ItemGroup>
     <ClInclude Include="..\..\helloworld\helloworld.h">
       <Filter>helloworld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ffmpeg_sdl_player\player.h">
+      <Filter>ffmpeg_sdl_player</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
