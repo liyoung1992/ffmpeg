@@ -199,17 +199,25 @@ int ffmpeg_in_action::SDL2Player() {
 
 	return 0;
 }
-
-
-
-void ffmpeg_in_action::saveStream() {
-
+int64_t lastReadPacktTime;
+static int  interrupt_cb(void *ctx)
+{
+	int timeout = 3;
+	if (av_gettime() - lastReadPacktTime > timeout * 1000 * 1000) {
+		return -1;
+	}
+	return 0;
 }
+
 //创建输入上下文
 int ffmpeg_in_action::openInput(std::string input) {
-	//AVFormatContext* inputContext = nullptr;
+
 	inputContext = avformat_alloc_context();
 
+// 	AVDictionary* options = nullptr;
+// 	av_dict_set(&options, "rtsp_transport", "rtmp", 0);
+// 
+// 	inputContext->interrupt_callback.callback = interrupt_cb;
 	int ret = avformat_open_input(&inputContext,input.c_str(),nullptr,nullptr);
 	if (ret < 0)
 	{
@@ -232,7 +240,7 @@ int ffmpeg_in_action::openInput(std::string input) {
 
 int ffmpeg_in_action::openOutput(std::string output)
 {
-	int ret = avformat_alloc_output_context2(&outputContext, nullptr, "mpegts", output.c_str());
+	int ret = avformat_alloc_output_context2(&outputContext, nullptr, "flv", output.c_str());
 	if (ret < 0) {
 		av_log(NULL, AV_LOG_ERROR, "open output context failed\n");
 		return closeOutput();
@@ -261,6 +269,8 @@ int ffmpeg_in_action::openOutput(std::string output)
 	av_log(NULL,AV_LOG_FATAL,"open output file success %s \n",output.c_str());
 	return ret;
 }
+
+
 
 int ffmpeg_in_action::closeInput()
 {
@@ -331,10 +341,13 @@ AVFormatContext * ffmpeg_in_action::getOutputContext()
 void ffmpeg_in_action::doSave()
 {
 	init();
-	int ret = openInput("rtsp://169.254.51.14:8554/channel=0");
+	int ret = openInput("rtsp://169.254.51.14:8556/channel=0");
 	if (ret >= 0)
 	{
-		ret = openOutput("E:\\xiazai0321.ts");
+		//转发 rtmp://127.0.0.1:1935/live/stream0  输出类型应该为 flv
+		//保存到本地 E:\\xiazai0321.ts 输出类型设置为 mpegts
+		ret = openOutput("rtmp://127.0.0.1:1935/live/stream0");
+		
 	}
 	else {
 		closeInput();

@@ -32,6 +32,7 @@
     <OutDir>..\..\..\bin</OutDir>
     <IncludePath>..\..\..\sdl2.0\include;..\..\..\include;$(IncludePath)</IncludePath>
     <LibraryPath>..\..\..\lib;..\..\..\sdl2.0\lib\x64;$(LibraryPath)</LibraryPath>
+    <IntDir>..\..\..\bin\temp</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
@@ -105,11 +106,8 @@
     <QtRcc Include="ffmpeg_in_action.qrc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\ffmpeg_sdl_player\player.h" />
-    <ClInclude Include="..\..\helloworld\helloworld.h" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\..\..\doc\ffmpeg基本概念.md" />
+    <None Include="..\..\..\doc\linux_rtmp_nginx_server.md" />
     <None Include="..\..\..\doc\音视频基本概念.md" />
     <None Include="..\..\..\README.md" />
   </ItemGroup>

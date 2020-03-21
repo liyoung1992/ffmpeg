@@ -60,9 +60,10 @@ public:
 
 	//保存网络流
 	//网络包-demux》pes流-mux》本地存储
-	void saveStream();
+
 	int openInput(std::string input);
 	int openOutput(std::string output);
+	//static int interrupt_cb(void *ctx);
 
 	int closeInput();
 	int closeOutput();
@@ -83,5 +84,5 @@ private:
 
 	AVFormatContext *inputContext = nullptr;
 	AVFormatContext * outputContext;
-	int64_t lastReadPacktTime;
+	
 };

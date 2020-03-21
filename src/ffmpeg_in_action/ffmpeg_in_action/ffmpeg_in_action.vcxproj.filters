@@ -23,12 +23,6 @@
       <Extensions>qrc;*</Extensions>
       <ParseFiles>false</ParseFiles>
     </Filter>
-    <Filter Include="helloworld">
-      <UniqueIdentifier>{26ce3468-9a16-4418-b022-c5111fde014a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ffmpeg_sdl_player">
-      <UniqueIdentifier>{bf09bbb1-7f39-456f-b2c5-9c7cd160474b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="doc">
       <UniqueIdentifier>{2fa6b796-d0c3-438c-901a-e51de3dafed3}</UniqueIdentifier>
     </Filter>
@@ -57,14 +51,6 @@
     </QtRcc>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\helloworld\helloworld.h">
-      <Filter>helloworld</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ffmpeg_sdl_player\player.h">
-      <Filter>ffmpeg_sdl_player</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\..\..\README.md">
       <Filter>doc</Filter>
     </None>
@@ -72,6 +58,9 @@
       <Filter>doc</Filter>
     </None>
     <None Include="..\..\..\doc\音视频基本概念.md">
+      <Filter>doc</Filter>
+    </None>
+    <None Include="..\..\..\doc\linux_rtmp_nginx_server.md">
       <Filter>doc</Filter>
     </None>
   </ItemGroup>
