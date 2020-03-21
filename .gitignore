@@ -1,1 +1,10 @@
 /src/ffmpeg_in_action/.vs
+/tool/EasyScreenLive-win32-v3.0
+.vs
+/《FFmpeg从入门到精通》.pdf
+/tool
+/bin/*
+/bin/*.h265
+/bin/*.flv
+/bin/*.rmvb
+/src/ffmpeg_in_action/ffmpeg_in_action/x64

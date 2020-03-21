@@ -1,6 +1,7 @@
 #pragma once
 #include <stdio.h>
 
+
 #define __STDC_CONSTANT_MACROS
 
 #ifdef _WIN32
@@ -32,7 +33,9 @@ extern "C"
 //Output YUV420P data as a file 
 #define OUTPUT_YUV420P 0
 
-int PalyerDemo()
+
+
+ int PalyerDemo()
 {
 	AVFormatContext	*pFormatCtx;
 	int				i, videoindex;

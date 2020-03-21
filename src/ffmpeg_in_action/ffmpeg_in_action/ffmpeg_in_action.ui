@@ -1,25 +1,35 @@
-<UI version="4.0" >
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
  <class>ffmpeg_in_actionClass</class>
- <widget class="QWidget" name="ffmpeg_in_actionClass" >
-  <property name="objectName" >
-   <string notr="true">ffmpeg_in_actionClass</string>
-  </property>
-  <property name="geometry" >
+ <widget class="QWidget" name="ffmpeg_in_actionClass">
+  <property name="geometry">
    <rect>
-	<x>0</x>
-	<y>0</y>
-	<width>600</width>
-	<height>400</height>
+    <x>0</x>
+    <y>0</y>
+    <width>600</width>
+    <height>400</height>
    </rect>
   </property>
-  <property name="windowTitle" >
+  <property name="windowTitle">
    <string>ffmpeg_in_action</string>
   </property>
+  <widget class="QPushButton" name="sdl_play_btn">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>350</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>SDL视频播放</string>
+   </property>
+  </widget>
  </widget>
- <layoutDefault spacing="6" margin="11" />
- <pixmapfunction></pixmapfunction>
+ <layoutdefault spacing="6" margin="11"/>
  <resources>
-   <include location="ffmpeg_in_action.qrc"/>
+  <include location="ffmpeg_in_action.qrc"/>
  </resources>
  <connections/>
-</UI>
+</ui>
