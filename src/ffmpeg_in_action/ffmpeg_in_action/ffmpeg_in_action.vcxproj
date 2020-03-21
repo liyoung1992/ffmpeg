@@ -108,6 +108,11 @@
     <ClInclude Include="..\..\ffmpeg_sdl_player\player.h" />
     <ClInclude Include="..\..\helloworld\helloworld.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\doc\ffmpeg基本概念.md" />
+    <None Include="..\..\..\doc\音视频基本概念.md" />
+    <None Include="..\..\..\README.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
     <Import Project="$(QtMsBuild)\qt.targets" />

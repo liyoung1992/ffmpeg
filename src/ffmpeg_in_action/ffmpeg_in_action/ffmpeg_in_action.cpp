@@ -7,6 +7,17 @@ ffmpeg_in_action::ffmpeg_in_action(QWidget *parent)
 
 }
 
+/*
+	初始化ffmpeg相关配置
+*/
+void ffmpeg_in_action::init()
+{
+	av_register_all();
+	avfilter_register_all();
+	avformat_network_init();
+	av_log_set_level(AV_LOG_ERROR);
+}
+
 int ffmpeg_in_action::SDL2Player() {
 	AVFormatContext	*pFormatCtx;
 	int				i, videoindex;
@@ -196,7 +207,7 @@ void ffmpeg_in_action::saveStream() {
 }
 //创建输入上下文
 int ffmpeg_in_action::openInput(std::string input) {
-	AVFormatContext* inputContext = nullptr;
+	//AVFormatContext* inputContext = nullptr;
 	inputContext = avformat_alloc_context();
 
 	int ret = avformat_open_input(&inputContext,input.c_str(),nullptr,nullptr);
@@ -216,7 +227,152 @@ int ffmpeg_in_action::openInput(std::string input) {
 	}
 	return ret;
 }
+
+
+
+int ffmpeg_in_action::openOutput(std::string output)
+{
+	int ret = avformat_alloc_output_context2(&outputContext, nullptr, "mpegts", output.c_str());
+	if (ret < 0) {
+		av_log(NULL, AV_LOG_ERROR, "open output context failed\n");
+		return closeOutput();
+	}
+	ret = avio_open2(&outputContext->pb, output.c_str(), AVIO_FLAG_WRITE, nullptr, nullptr);
+	if (ret < 0) {
+		av_log(NULL, AV_LOG_ERROR, "open avio failed");
+		return closeOutput();
+	}
+
+	for (int i = 0; i < inputContext->nb_streams; i++)
+	{
+		AVStream* stream = avformat_new_stream(outputContext,inputContext->streams[i]->codec->codec);
+		ret = avcodec_copy_context(stream->codec, inputContext->streams[i]->codec);
+		if (ret < 0) {
+			av_log(NULL, AV_LOG_ERROR, "copy codec context failed");
+			return closeOutput();
+		}
+	}
+
+	ret = avformat_write_header(outputContext, nullptr);
+	if (ret < 0) {
+		av_log(NULL,AV_LOG_ERROR,"format  write header failed");
+		return closeOutput();
+	}
+	av_log(NULL,AV_LOG_FATAL,"open output file success %s \n",output.c_str());
+	return ret;
+}
+
+int ffmpeg_in_action::closeInput()
+{
+	if (inputContext) {
+		avformat_close_input(&inputContext);
+	}
+	return 1;
+}
+
+int  ffmpeg_in_action::closeOutput()
+{
+	if (outputContext)
+	{
+		for (int i = 0; i < outputContext->nb_streams; i++)
+		{
+			avcodec_close(outputContext->streams[i]->codec);
+		}
+		avformat_close_input(&outputContext);
+	}
+	return 1;
+}
+
+std::shared_ptr<AVPacket> ffmpeg_in_action::readPacketFromSource()
+{
+	std::shared_ptr<AVPacket> packet(static_cast<AVPacket*>(av_malloc(sizeof(AVPacket))), [&](AVPacket *p) 
+	{
+		av_packet_free(&p); 
+		av_freep(&p);
+	});
+	av_init_packet(packet.get());
+	lastReadPacktTime = av_gettime();
+	int ret = av_read_frame(inputContext, packet.get());
+	if (ret >= 0) {
+		return packet;
+	}
+	return nullptr;
+}
+
+void ffmpeg_in_action::av_packet_rescale_ts(AVPacket *pkt,
+	AVRational src_tb, AVRational dst_tb)
+{
+	if (pkt->pts != AV_NOPTS_VALUE)
+		pkt->pts = av_rescale_q(pkt->pts, src_tb, dst_tb);
+	if (pkt->dts != AV_NOPTS_VALUE)
+		pkt->dts = av_rescale_q(pkt->dts, src_tb, dst_tb);
+	if (pkt->duration > 0)
+		pkt->duration = av_rescale_q(pkt->duration, src_tb, dst_tb);
+}
+
+int ffmpeg_in_action::writePacket(std::shared_ptr<AVPacket> packet)
+{
+	auto inputStream = inputContext->streams[packet->stream_index];
+	auto outputStream = outputContext->streams[packet->stream_index];
+	av_packet_rescale_ts(packet.get(), inputStream->time_base, outputStream->time_base);
+	return av_interleaved_write_frame(outputContext, packet.get());
+}
+
+AVFormatContext * ffmpeg_in_action::getInputContext()
+{
+	return inputContext;
+}
+
+AVFormatContext * ffmpeg_in_action::getOutputContext()
+{
+	return outputContext;
+}
+
+void ffmpeg_in_action::doSave()
+{
+	init();
+	int ret = openInput("rtsp://169.254.51.14:8554/channel=0");
+	if (ret >= 0)
+	{
+		ret = openOutput("E:\\xiazai0321.ts");
+	}
+	else {
+		closeInput();
+		closeOutput();
+		while (true)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(100));
+		}
+	}
+	
+	while (true)
+	{
+		auto packet = readPacketFromSource();
+		if (packet)
+		{
+			ret = writePacket(packet);
+			if (ret >= 0)
+			{
+				std::cout << "WritePacket Success!" << std::endl;
+			}
+			else
+			{
+				std::cout << "WritePacket failed!" << std::endl;
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
 void ffmpeg_in_action::on_sdl_play_btn_clicked()
 {
 	SDL2Player();
+}
+
+void ffmpeg_in_action::on_save_stream_btn_clicked()
+{
+	doSave();
 }

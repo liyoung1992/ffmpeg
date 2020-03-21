@@ -5,11 +5,6 @@
 
 int main(int argc, char *argv[])
 {
-	//test ffmpeg
-	//helloWorld();
-	//player
-
-	//PalyerDemo();
 
 	QApplication a(argc, argv);
 	ffmpeg_in_action w;

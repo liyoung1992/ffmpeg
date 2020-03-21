@@ -26,6 +26,19 @@
     <string>SDL视频播放</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="save_stream_btn">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>350</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>保存视频流</string>
+   </property>
+  </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>

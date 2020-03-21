@@ -29,6 +29,9 @@
     <Filter Include="ffmpeg_sdl_player">
       <UniqueIdentifier>{bf09bbb1-7f39-456f-b2c5-9c7cd160474b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="doc">
+      <UniqueIdentifier>{2fa6b796-d0c3-438c-901a-e51de3dafed3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -60,5 +63,16 @@
     <ClInclude Include="..\..\ffmpeg_sdl_player\player.h">
       <Filter>ffmpeg_sdl_player</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\README.md">
+      <Filter>doc</Filter>
+    </None>
+    <None Include="..\..\..\doc\ffmpeg基本概念.md">
+      <Filter>doc</Filter>
+    </None>
+    <None Include="..\..\..\doc\音视频基本概念.md">
+      <Filter>doc</Filter>
+    </None>
   </ItemGroup>
 </Project>
