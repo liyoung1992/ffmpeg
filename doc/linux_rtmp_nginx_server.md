@@ -61,3 +61,16 @@ zly       4383  1855  0 23:40 pts/0    00:00:00 grep --color=auto nginx
 
 
 ```
+
+## 网络流转发
+
+```
+	int ret = openInput("rtsp://169.254.51.14:8554/channel=0");
+	if (ret >= 0)
+	{
+		//转发 rtmp://192.168.1.110/myapp/mystream  输出类型应该为 flv
+		//保存到本地 E:\\xiazai0321.ts 输出类型设置为 mpegts
+		ret = openOutput("rtmp://192.168.1.110/myapp/mystream");
+		
+	}
+```
