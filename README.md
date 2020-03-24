@@ -8,3 +8,4 @@ learn ffmpeg in action
 - [Linux下基于nginx搭建RTMP服务器](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/linux_rtmp_nginx_server.md)
 - [ffmpeg保存网络流转发](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/linux_rtmp_nginx_server.md)
 - [ffmpeg基于SDL最简单的播放器](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/ffmpeg_player_sdl2.md)
+- [ffmpeg文件裁剪](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/cut_file.md)

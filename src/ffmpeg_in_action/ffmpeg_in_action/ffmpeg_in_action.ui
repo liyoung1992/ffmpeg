@@ -39,6 +39,19 @@
     <string>保存视频流</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="cutfile_btn">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>350</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>剪切文件</string>
+   </property>
+  </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>

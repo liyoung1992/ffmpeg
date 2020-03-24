@@ -106,6 +106,7 @@
     <QtRcc Include="ffmpeg_in_action.qrc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\doc\ffmpeg_player_sdl2.md" />
     <None Include="..\..\..\doc\ffmpeg基本概念.md" />
     <None Include="..\..\..\doc\linux_rtmp_nginx_server.md" />
     <None Include="..\..\..\doc\音视频基本概念.md" />

@@ -71,6 +71,9 @@ public:
 	void av_packet_rescale_ts(AVPacket *pkt, AVRational src_tb, AVRational dst_tb);
 	int writePacket(std::shared_ptr<AVPacket> packet);
 
+	//²Ã¼ôÎÄ¼þ
+	void cutFile();
+
 	AVFormatContext * getInputContext();
 	AVFormatContext * getOutputContext();
 
@@ -79,6 +82,7 @@ public:
 public slots:
 	void on_sdl_play_btn_clicked();
 	void on_save_stream_btn_clicked();
+	void on_cutfile_btn_clicked();
 private:
 	Ui::ffmpeg_in_actionClass ui;
 
