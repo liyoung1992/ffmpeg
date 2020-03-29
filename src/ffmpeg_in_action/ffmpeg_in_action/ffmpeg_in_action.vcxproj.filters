@@ -63,5 +63,17 @@
     <None Include="..\..\..\doc\linux_rtmp_nginx_server.md">
       <Filter>doc</Filter>
     </None>
+    <None Include="..\..\..\doc\cut_file.md">
+      <Filter>doc</Filter>
+    </None>
+    <None Include="..\..\..\doc\ffmpeg_primary_develop.md">
+      <Filter>doc</Filter>
+    </None>
+    <None Include="..\..\..\doc\ffmpeg_player_sdl2.md">
+      <Filter>doc</Filter>
+    </None>
+    <None Include="..\..\..\doc\get_audio_date.md">
+      <Filter>doc</Filter>
+    </None>
   </ItemGroup>
 </Project>

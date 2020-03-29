@@ -25,6 +25,7 @@ extern "C"
 #include "libavfilter/buffersrc.h"
 #include "libavutil/time.h"
 #include "SDL.h"
+#include "libavutil/log.h"
 };
 #else
 //Linux...
@@ -78,6 +79,10 @@ public:
 	AVFormatContext * getOutputContext();
 
 	void doSave();
+
+	// ≥È»°“Ù∆µ ˝æ›
+	void getAudioData();
+
 
 public slots:
 	void on_sdl_play_btn_clicked();

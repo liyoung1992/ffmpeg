@@ -72,7 +72,7 @@
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>avcodec.lib;avdevice.lib;SDL2main.lib;SDL2.lib;avfilter.lib;avformat.lib;avutil.lib;postproc.lib;swresample.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -106,8 +106,11 @@
     <QtRcc Include="ffmpeg_in_action.qrc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\doc\cut_file.md" />
     <None Include="..\..\..\doc\ffmpeg_player_sdl2.md" />
+    <None Include="..\..\..\doc\ffmpeg_primary_develop.md" />
     <None Include="..\..\..\doc\ffmpeg基本概念.md" />
+    <None Include="..\..\..\doc\get_audio_date.md" />
     <None Include="..\..\..\doc\linux_rtmp_nginx_server.md" />
     <None Include="..\..\..\doc\音视频基本概念.md" />
     <None Include="..\..\..\README.md" />
