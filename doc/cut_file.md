@@ -1,8 +1,8 @@
-# ÎÄ¼ş²Ã¼ô
+# æ–‡ä»¶è£å‰ª
 
 ```
 
-//µÚ20S¿ªÊ¼£¬È¥µô8S
+//ç¬¬20Så¼€å§‹ï¼Œå»æ‰8S
 	int startPacketNum = 500;
 	int  discardtPacketNum = 200;
 	int packetCount = 0;

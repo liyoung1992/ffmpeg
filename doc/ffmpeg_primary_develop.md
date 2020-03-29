@@ -1,6 +1,6 @@
-# ffmepg³õ¼¶¿ª·¢¼°Ê¹ÓÃ
+# ffmepgåˆçº§å¼€å‘åŠä½¿ç”¨
 
-### ÈÕÖ¾Ê¹ÓÃ
+### æ—¥å¿—ä½¿ç”¨
 
 ```
 #include "libavutil/log.h"
@@ -9,28 +9,28 @@ av_log(NULL, AV_LOG_ERROR, "Input file open input failed\n");
 
 ```
 
-### ÎÄ¼ş¼°Ä¿Â¼²Ù×÷
+### æ–‡ä»¶åŠç›®å½•æ“ä½œ
 
 ```
 #include <libavformat/avformat.h>
-# É¾³ı
+# åˆ é™¤
 int ret = avpriv_io_delete("D://test.ts");
 if (ret < 0) {
 	av_log(NULL, AV_LOG_ERROR, "failed to delete file test.ts");
 	return;
 }
-# ÒÆ¶¯
+# ç§»åŠ¨
 int ret = avpriv_io_move("D://aac.ts", "D://aac_move.ts");
 if (ret < 0) {
 	av_log(NULL, AV_LOG_ERROR, "failed to move file aac.ts");
 	return;
 }
-# Ä¿Â¼²Ù×÷
+# ç›®å½•æ“ä½œ
 	 // dir
 	AVIODirContext* ctx = NULL;
 	AVIODirEntry* entry = NULL;
-	//×¢ÒâWindowsÏÂ»á·µ»Ø-40£¬Ò²¾ÍÊÇFunction not implement,
-	//windows²»Ö§³Ö´Ëº¯Êı
+	//æ³¨æ„Windowsä¸‹ä¼šè¿”å›-40ï¼Œä¹Ÿå°±æ˜¯Function not implement,
+	//windowsä¸æ”¯æŒæ­¤å‡½æ•°
 	int ret = avio_open_dir(&ctx, "D:/wamp", NULL);
 	if (ret < 0) {
 		av_log(NULL, AV_LOG_ERROR, "failed to open dir: %d\n",(ret));
@@ -48,18 +48,18 @@ if (ret < 0) {
 			break;
 		}
 		av_log(NULL, AV_LOG_INFO, "%12" PRId64 "%s \n", entry->size,entry->name);
-		//ÊÍ·Å
+		//é‡Šæ”¾
 		avio_free_directory_entry(&entry);
 	}
 	avio_close_dir(&ctx);
 	return;
 
 ```
-### ´òÓ¡ÒôÊÓÆµĞÅÏ¢
+### æ‰“å°éŸ³è§†é¢‘ä¿¡æ¯
 
 ```
 #ifdef __cplusplus
-// C++ÖĞÊ¹ÓÃav_err2strºê
+// C++ä¸­ä½¿ç”¨av_err2strå®
 char av_error[AV_ERROR_MAX_STRING_SIZE] = { 0 };
 #define av_err2str(errnum)     av_make_error_string(av_error, AV_ERROR_MAX_STRING_SIZE, errnum)
 #endif
