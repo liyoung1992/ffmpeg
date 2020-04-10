@@ -26,6 +26,7 @@ extern "C"
 #include "libavutil/time.h"
 #include "SDL.h"
 #include "libavutil/log.h"
+#include <libavutil/timestamp.h>
 };
 #else
 //Linux...
@@ -86,14 +87,21 @@ public:
 	//抽取视频数据
 	void  getVideoData();
 
+	//mp4toflv
+	int mp4ToFlv();
+
+	//cut_file
+	int seekCutFile();
+
 
 public slots:
 	void on_sdl_play_btn_clicked();
 	void on_save_stream_btn_clicked();
 	void on_cutfile_btn_clicked();
 	void on_getVideo_btn_clicked();
+	void on_mp4flv_btn_clicked();
 private:
-	Ui::ffmpeg_in_actionClass ui;
+	Ui::ffmpeg_in_actionClass  ui;
 
 	AVFormatContext *inputContext = nullptr;
 	AVFormatContext * outputContext;

@@ -78,6 +78,19 @@
     <string>导出视频</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="mp4flv_btn">
+   <property name="geometry">
+    <rect>
+     <x>220</x>
+     <y>200</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>mp4flv</string>
+   </property>
+  </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>

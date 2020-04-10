@@ -11,4 +11,6 @@ learn ffmpeg in action
 - [ffmpeg基于SDL最简单的播放器](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/ffmpeg_player_sdl2.md)
 - [ffmpeg文件裁剪](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/cut_file.md)
 - [ffmpeg抽取音频数据](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/get_audio_date.md)
-- [ffmpeg抽取视频数据](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/get_video_date.md)
+- [ffmpeg抽取视频数据](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/get_video_data.md)
+- [ffmpeg实现mp4-flv](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/mp4_to_flv.md)
+- [ffmpeg使用av_seek截取文件](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/av_seek_cut_file.md)
