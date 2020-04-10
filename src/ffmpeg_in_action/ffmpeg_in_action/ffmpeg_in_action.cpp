@@ -42,258 +42,286 @@ void adts_header(char *szAdtsHeader, int dataLen)
 }
 #define ERROR_STR_SIZE 1024
 
+
+#ifndef AV_WB32
+#   define AV_WB32(p, val) do {                 \
+uint32_t d = (val);                     \
+((uint8_t*)(p))[3] = (d);               \
+((uint8_t*)(p))[2] = (d)>>8;            \
+((uint8_t*)(p))[1] = (d)>>16;           \
+((uint8_t*)(p))[0] = (d)>>24;           \
+} while(0)
+#endif
+
+#ifndef AV_RB16
+#   define AV_RB16(x)                           \
+((((const uint8_t*)(x))[0] << 8) |          \
+((const uint8_t*)(x))[1])
+#endif
+
+static int alloc_and_copy(AVPacket *out,
+	const uint8_t *sps_pps,
+	uint32_t sps_pps_size,
+	const uint8_t *in,
+	uint32_t in_size) {
+	uint32_t offset = out->size;
+	//SPS和PPS的startCode是00 00 00 01  非SPS和PPS的startCode是00 00 01
+	uint8_t nal_header_size = offset ? 3 : 4;
+	int err;
+
+	//av_grow_packet增大数组缓存空间  就是扩容的意思
+	err = av_grow_packet(out, sps_pps_size + in_size + nal_header_size);
+	if (err < 0) {
+		return err;
+	}
+
+	if (sps_pps) {
+		memcpy(out->data + offset, sps_pps, sps_pps_size);
+	}
+
+	memcpy(out->data + sps_pps_size + nal_header_size + offset, in, in_size);
+	if (!offset) {
+		AV_WB32(out->data + sps_pps_size, 1);
+	}
+	else {
+		(out->data + offset + sps_pps_size)[0] =
+			(out->data + offset + sps_pps_size)[1] = 0;
+		(out->data + offset + sps_pps_size)[2] = 1;
+	}
+	return 0;
+}
+
+/** SPS PPS
+ * 正常SPS和PPS包含在FLV的AVCDecoderConfigurationRecord结构中，而AVCDecoderConfigurationRecord就是经过FFmpeg分析后，
+ 就是AVCodecContext里面的extradata
+
+ *
+ * 处理SPS-PPS
+ * 第一种方法:
+ * h264_extradata_to_annexb
+	从AVPacket中的extra_data 获取并组装
+	添加startCode
+ * 第二种方法:  在新的FFmpeg中不建议使用会造成内存漏的问题
+	AVBitStreamFilterContext *h264bsfc = av_bitstream_filter_init("h264_mp4toannexb");  //定义放在循环外面
+	av_bitstream_filter_filter(h264bsfc, fmt_ctx->streams[in->stream_index]->codec, NULL, &spspps_pkt.data, &spspps_pkt.size, in->data, in->size, 0);  //解析sps pps
+
+ * 第三种方法 新版FFmpeg中使用
+	 AVBitStreamFilter和AVBSFContext
+	  如方法 bl_decode
+ *
+ *
+ * 为什么需要处理sps和pps startCode,其实是因为H.264有两种封装格式
+ * 1.Annexb模式 传统模式 有startCode SPS和PPS是在ES中   这种一般都是网络比特流
+ * 2.MP4模式  一般mp4 mkv会有，没有startcode SPS和PPS以及其它信息被封装在container中，
+ 每一个frame前面是这个frame的长度。很多解码器只支持Annexb这种模式，因为需要将MP4做转换  用于保存文件
+ */
+int h264_extradata_to_annexb(const uint8_t *codec_extradata, const int codec_extradata_size, AVPacket *out_extradata, int padding) {
+	uint16_t unit_size;
+	uint64_t total_size = 0;
+	uint8_t *out = NULL, unit_nb, sps_done = 0, sps_seen = 0, pps_seen = 0, sps_offset = 0, pps_offset = 0;
+
+	const uint8_t *extradata = codec_extradata + 4;
+	static const uint8_t nalu_header[4] = { 0, 0, 0, 1 };
+	int length_size = (*extradata++ & 0x3) + 1; //retrieve length coded size 用于指示表示编码数据长度所需字节数
+
+	sps_offset = pps_offset = -1;
+
+	/**retrieve sps and pps unit(s)*/
+	unit_nb = *extradata++ & 0x1f; /** number of sps unit(s) 查看有多少个sps和pps 一般情况下只有一个*/
+	if (!unit_nb) {
+		goto pps;
+	}
+	else {
+		sps_offset = 0;
+		sps_seen = 1;
+	}
+
+	while (unit_nb--) {
+		int err;
+
+		unit_size = AV_RB16(extradata);
+		total_size += unit_size + 4;
+		if (total_size > INT_MAX - padding) {
+			av_log(NULL, AV_LOG_DEBUG, "too big extradata size ,corrupted stream or invalid MP4/AVCC bitstream\n");
+			av_free(out);
+			return AVERROR(EINVAL);
+		}
+
+		if (extradata + 2 + unit_size > codec_extradata + codec_extradata_size) {
+			av_log(NULL, AV_LOG_DEBUG, "Packet header is not contained in global extradata,corrupt stream or invalid MP4/AVCC bitstream\n");
+			av_free(out);
+			return AVERROR(EINVAL);
+		}
+
+		if ((err = av_reallocp(&out, total_size + padding)) < 0) {
+			return err;
+		}
+
+		memcpy(out + total_size - unit_size - 4, nalu_header, 4);
+		memcpy(out + total_size - unit_size, extradata + 2, unit_size);
+		extradata += 2 + unit_size;
+	pps:
+		if (!unit_nb && !sps_done++) {
+			unit_nb = *extradata++;
+			if (unit_nb) {
+				pps_offset = total_size;
+				pps_seen = 1;
+			}
+		}
+	}
+
+	if (out) {
+		memset(out + total_size, 0, padding);
+	}
+
+	if (!sps_seen) {
+		av_log(NULL, AV_LOG_WARNING, "Warning SPS NALU missing or invalid.The resulting stream may not paly\n");
+	}
+
+	if (!pps_seen) {
+		av_log(NULL, AV_LOG_WARNING, "Warning pps nalu missing or invalid\n");
+	}
+
+	out_extradata->data = out;
+	out_extradata->size = total_size;
+	return length_size;
+}
+
+int h264_mp4toannexb(AVFormatContext *fmt_ctx, AVPacket *in, FILE *dst_fd) {
+	AVPacket *out = NULL;
+	AVPacket spspps_pkt;
+
+	int len;
+	uint8_t unit_type;
+	int32_t nal_size;
+	uint32_t cumul_size = 0;
+	const uint8_t *buf;
+	const uint8_t *buf_end;
+	int buf_size;
+	int ret = 0, i;
+
+	out = av_packet_alloc();
+
+	buf = in->data;
+	buf_size = in->size;
+	buf_end = in->data + in->size;
+
+	AVBitStreamFilterContext *h264bsfc = av_bitstream_filter_init("h264_mp4toannexb");
+
+	do {
+		ret = AVERROR(EINVAL);
+		if (buf + 4 > buf_end) { //越界
+			goto fail;
+		}
+
+		//AVPacket的前4个字节 算出的是nalu的长度  因为AVPacket内可能有一帧也可能有多帧
+		for (nal_size = 0, i = 0; i < 4; i++) {
+			nal_size = (nal_size << 8) | buf[i]; //<<8 低地址32位的高位  高地址实际上是32位的低位
+		}
+
+		buf += 4;
+		//第一个字节的后五位是type
+		unit_type = *buf & 0x1f;  //NAL Header中的第5个字节表示type   0x1f取出后5位
+
+		if (nal_size > buf_end - buf || nal_size < 0) {
+			goto fail;
+		}
+
+		/**prepend only to the first type 5 NAL unit of an IDR picture, if no sps/pps are already present*/
+		/**IDR
+		 * 一个序列的第一个图像叫做IDR图像(立即刷新图像) IDR图像都是I帧图像
+		 * I和IDR帧都使用帧内预测，I帧不用参考任何帧，但是之后的P帧和B帧是有可能参考这个I帧之前的帧的。IDR不允许
+		 *
+		 * IDR的核心作用:
+		 * H.264引入IDR图像是为了解码的重同步，当解码器解码到IDR图像时，立即将将参考帧队列清空，将已解码的数据全部输出或抛弃。重新查找参数集，开始一个新的序列。这样，如果前一个序列出现重大错误，在这里可以获得重新同步的机会。IDR图像之后的图像永远不会使用IDR之前的图像的数据来解码
+		 */
+		if (unit_type == 5) {
+
+
+			//sps pps
+			/*h264_extradata_to_annexb(fmt_ctx->streams[in->stream_index]->codec->extradata,
+									 fmt_ctx->streams[in->stream_index]->codec->extradata_size,
+									 &spspps_pkt,
+									 AV_INPUT_BUFFER_PADDING_SIZE);*/
+			av_bitstream_filter_filter(h264bsfc, fmt_ctx->streams[in->stream_index]->codec, NULL, &spspps_pkt.data, &spspps_pkt.size, in->data, in->size, 0);
+			//startcode
+			if ((ret = alloc_and_copy(out,
+				spspps_pkt.data,
+				spspps_pkt.size,
+				buf,
+				nal_size)) < 0) {
+				goto fail;
+			}
+		}
+		else { //非关建帧
+			if ((ret = alloc_and_copy(out, NULL, 0, buf, nal_size)) < 0) {
+				goto fail;
+			}
+		}
+
+		len = fwrite(out->data, 1, out->size, dst_fd);
+		if (len != out->size) {
+			av_log(NULL, AV_LOG_DEBUG, "warning,length of writed data isn't equal pkt.size(%d,%d)\n", len,
+				out->size);
+		}
+		fflush(dst_fd);
+
+	next_nal:
+		buf += nal_size;
+		cumul_size += nal_size + 4;
+	} while (cumul_size < buf_size);
+
+fail:
+	av_packet_free(&out);
+	return ret;
+}
+
+
+int bl_decode(AVFormatContext *fmt_ctx, AVPacket *in, FILE *dst_fd) {
+	int len = 0;
+
+	const AVBitStreamFilter *absFilter = av_bsf_get_by_name("h264_mp4toannexb");
+	AVBSFContext *absCtx = NULL;
+	AVCodecParameters *codecpar = NULL;
+
+	av_bsf_alloc(absFilter, &absCtx);
+
+	if (fmt_ctx->streams[in->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+		codecpar = fmt_ctx->streams[in->stream_index]->codecpar;
+	}
+	else {
+		return -1;
+	}
+
+	avcodec_parameters_copy(absCtx->par_in, codecpar);
+
+	av_bsf_init(absCtx);
+
+	if (av_bsf_send_packet(absCtx, in) != 0) {
+		av_bsf_free(&absCtx);
+		absCtx = NULL;
+		return -1;
+	}
+
+	while (av_bsf_receive_packet(absCtx, in) == 0) {
+		len = fwrite(in->data, 1, in->size, dst_fd);
+		if (len != in->size) {
+			av_log(NULL, AV_LOG_DEBUG, "warning,length of writed data isn't equal pkt.size(%d,%d)\n", len,
+				in->size);
+		}
+		fflush(dst_fd);
+	}
+	av_bsf_free(&absCtx);
+	absCtx = NULL;
+	return 0;
+}
+
+
 ffmpeg_in_action::ffmpeg_in_action(QWidget *parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
 	init();
-
-	int err_code;
-	char errors[1024];
-
-	char *src_filename = NULL;
-	char *dst_filename = NULL;
-
-
-	int audio_stream_index = -1;
-	int len;
-
-	AVFormatContext *ofmt_ctx = NULL;
-	AVOutputFormat *output_fmt = NULL;
-
-	AVStream *in_stream = NULL;
-	AVStream *out_stream = NULL;
-
-	AVFormatContext *fmt_ctx = NULL;
-	//AVFrame *frame = NULL;
-	AVPacket pkt;
-
-	av_log_set_level(AV_LOG_DEBUG);
-
-
-
-	src_filename = "D:\\test.mp4";
-	dst_filename = "D:\\test1.aac";
-
-
-
-	/*register all formats and codec*/
-	av_register_all();
-
-	/*open input media file, and allocate format context*/
-	if ((err_code = avformat_open_input(&fmt_ctx, src_filename, NULL, NULL)) < 0) {
-		av_strerror(err_code, errors, 1024);
-		av_log(NULL, AV_LOG_DEBUG, "Could not open source file: %s, %d(%s)\n",
-			src_filename,
-			err_code,
-			errors);
-		return ;
-	}
-
-	/*retrieve audio stream*/
-	if ((err_code = avformat_find_stream_info(fmt_ctx, NULL)) < 0) {
-		av_strerror(err_code, errors, 1024);
-		av_log(NULL, AV_LOG_DEBUG, "failed to find stream information: %s, %d(%s)\n",
-			src_filename,
-			err_code,
-			errors);
-		return ;
-	}
-
-	/*dump input information*/
-	av_dump_format(fmt_ctx, 0, src_filename, 0);
-
-	in_stream = fmt_ctx->streams[1];
-	AVCodecParameters *in_codecpar = in_stream->codecpar;
-	if (in_codecpar->codec_type != AVMEDIA_TYPE_AUDIO) {
-		av_log(NULL, AV_LOG_ERROR, "The Codec type is invalid!\n");
-		exit(1);
-	}
-
-	//out file
-	ofmt_ctx = avformat_alloc_context();
-	output_fmt = av_guess_format(NULL, dst_filename, NULL);
-	if (!output_fmt) {
-		av_log(NULL, AV_LOG_DEBUG, "Cloud not guess file format \n");
-		exit(1);
-	}
-
-	ofmt_ctx->oformat = output_fmt;
-
-	out_stream = avformat_new_stream(ofmt_ctx, NULL);
-	if (!out_stream) {
-		av_log(NULL, AV_LOG_DEBUG, "Failed to create out stream!\n");
-		exit(1);
-	}
-
-	if (fmt_ctx->nb_streams < 2) {
-		av_log(NULL, AV_LOG_ERROR, "the number of stream is too less!\n");
-		exit(1);
-	}
-
-
-	if ((err_code = avcodec_parameters_copy(out_stream->codecpar, in_codecpar)) < 0) {
-		av_strerror(err_code, errors, ERROR_STR_SIZE);
-		av_log(NULL, AV_LOG_ERROR,
-			"Failed to copy codec parameter, %d(%s)\n",
-			err_code, errors);
-	}
-
-	out_stream->codecpar->codec_tag = 0;
-
-	if ((err_code = avio_open(&ofmt_ctx->pb, dst_filename, AVIO_FLAG_WRITE)) < 0) {
-		av_strerror(err_code, errors, 1024);
-		av_log(NULL, AV_LOG_DEBUG, "Could not open file %s, %d(%s)\n",
-			dst_filename,
-			err_code,
-			errors);
-		exit(1);
-	}
-
-
-
-	/*dump output information*/
-	av_dump_format(ofmt_ctx, 0, dst_filename, 1);
-
-
-
-	/*initialize packet*/
-	av_init_packet(&pkt);
-	pkt.data = NULL;
-	pkt.size = 0;
-
-	/*find best audio stream*/
-	audio_stream_index = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
-	if (audio_stream_index < 0) {
-		av_log(NULL, AV_LOG_DEBUG, "Could not find %s stream in input file %s\n",
-			av_get_media_type_string(AVMEDIA_TYPE_AUDIO),
-			src_filename);
-		return ;
-	}
-
-	if (avformat_write_header(ofmt_ctx, NULL) < 0) {
-		av_log(NULL, AV_LOG_DEBUG, "Error occurred when opening output file");
-		exit(1);
-	}
-
-	/*read frames from media file*/
-	while (av_read_frame(fmt_ctx, &pkt) >= 0) {
-		if (pkt.stream_index == audio_stream_index) {
-			pkt.pts = av_rescale_q_rnd(pkt.pts, in_stream->time_base, out_stream->time_base, AVRounding(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-			pkt.dts = pkt.pts;
-			pkt.duration = av_rescale_q(pkt.duration, in_stream->time_base, out_stream->time_base);
-			pkt.pos = -1;
-			pkt.stream_index = 0;
-			av_interleaved_write_frame(ofmt_ctx, &pkt);
-			av_packet_unref(&pkt);
-		}
-	}
-
-	av_write_trailer(ofmt_ctx);
-
-	/*close input media file*/
-	avformat_close_input(&fmt_ctx);
-// 	if (dst_fd) {
-// 		fclose(dst_fd);
-// 	}
-
-	avio_close(ofmt_ctx->pb);
-
-	return ;
-
-// 	抽取音频
-// 		AVFormatContext* fmt_ctx = NULL;
-// 		AVPacket pkt;
-// 		int audio_index;
-// 		int ret = avformat_open_input(&fmt_ctx, "D:\\1111.mp4", NULL, NULL);
-// 		if (ret < 0) {
-// 			av_log(NULL, AV_LOG_ERROR, "failed to open file,%s\n",av_err2str(ret));
-// 		}
-// 		av_dump_format(fmt_ctx, 0, "D:\\test.mp4", 0);
-// 	
-// 		//GET stream
-// 		FILE* dst_df = fopen("D:\\11112.aac", "wb");
-// 		if (!dst_df) {
-// 			av_log(NULL,AV_LOG_ERROR,"can't open");
-// 			avformat_close_input(&fmt_ctx);
-// 			return;
-// 		}
-// 		ret = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_AUDIO, -1. - 1, NULL, 0,NULL);
-// 		if (ret < 0) {
-// 			av_log(NULL,AV_LOG_ERROR,"best failed");
-// 			avformat_close_input(&fmt_ctx);
-// 			fclose(dst_df);
-// 			return;
-// 		}
-// 		audio_index = ret;
-// 		av_init_packet(&pkt);
-// 		while (av_read_frame(fmt_ctx, &pkt) >= 0)
-// 		{
-// 			if (pkt.stream_index == audio_index) {
-// 				char adts_header_buf[7];
-// 				adts_header(adts_header_buf,pkt.size);
-// 				fwrite(adts_header_buf, sizeof(char), 7, dst_df);
-// 				int len =  fwrite(pkt.data,1,pkt.size,dst_df);
-// 				if (len != pkt.size) {
-// 					av_log(NULL,AV_LOG_ERROR,"len != pkt size\n");
-// 				}
-// 			}
-// 			av_packet_unref(&pkt);
-// 		}
-// 		//av_read_frame(fmt_ctx,&pkt);
-// 		avformat_close_input(&fmt_ctx);
-// 		if (dst_df) {
-// 			fclose(dst_df);
-// 		}
-
-// 	//打印音视频信息
-// 	AVFormatContext* fmt_ctx = NULL;
-// 	int ret = avformat_open_input(&fmt_ctx, "D:\\test.mp4", NULL, NULL);
-// 	if (ret < 0) {
-// 		av_log(NULL, AV_LOG_ERROR, "failed to open file,%s\n",av_err2str(ret));
-// 	}
-// 	av_dump_format(fmt_ctx, 0, "D:\\test.mp4", 0);
-// 	avformat_close_input(&fmt_ctx);
-	// file opt
-// 	int ret = avpriv_io_delete("D://test.ts");
-// 	if (ret < 0) {
-// 		av_log(NULL, AV_LOG_ERROR, "failed to delete file test.ts");
-// 		return;
-// 	}
-// 	int ret = avpriv_io_move("D://aac.ts", "D://aac_move.ts");
-// 	if (ret < 0) {
-// 		av_log(NULL, AV_LOG_ERROR, "failed to move file aac.ts");
-// 		return;
-// 	}
-// 	return;
-
-	 // dir
-// 	AVIODirContext* ctx = NULL;
-// 	AVIODirEntry* entry = NULL;
-// 	//注意Windows下会返回-40，也就是Function not implement,
-// 	//windows不支持此函数
-// 	int ret = avio_open_dir(&ctx, "D:/wamp", NULL);
-// 	if (ret < 0) {
-// 		av_log(NULL, AV_LOG_ERROR, "failed to open dir: %d\n",(ret));
-// 		return;
-// 	}
-// 	while (true)
-// 	{
-// 		ret = avio_read_dir(ctx, &entry);
-// 		if (ret < 0) {
-// 			av_log(NULL, AV_LOG_ERROR, "failed read dir:%d\n", (ret));
-// 			avio_close_dir(&ctx);
-// 			return;
-// 		}
-// 		if (!entry) {
-// 			break;
-// 		}
-// 		av_log(NULL, AV_LOG_INFO, "%12" PRId64 "%s \n", entry->size,entry->name);
-// 		//释放
-// 		avio_free_directory_entry(&entry);
-// 	}
-// 	avio_close_dir(&ctx);
-// 	return;
 }
 
 /*
@@ -732,8 +760,235 @@ void ffmpeg_in_action::doSave()
 
 void ffmpeg_in_action::getAudioData()
 {
+	int err_code;
+	char errors[1024];
 
+	char *src_filename = NULL;
+	char *dst_filename = NULL;
+
+
+	int audio_stream_index = -1;
+	int len;
+
+	AVFormatContext *ofmt_ctx = NULL;
+	AVOutputFormat *output_fmt = NULL;
+
+	AVStream *in_stream = NULL;
+	AVStream *out_stream = NULL;
+
+	AVFormatContext *fmt_ctx = NULL;
+	//AVFrame *frame = NULL;
+	AVPacket pkt;
+
+	av_log_set_level(AV_LOG_DEBUG);
+
+
+
+	src_filename = "D:\\test.mp4";
+	dst_filename = "D:\\test1.aac";
+
+
+
+	/*register all formats and codec*/
+	av_register_all();
+
+	/*open input media file, and allocate format context*/
+	if ((err_code = avformat_open_input(&fmt_ctx, src_filename, NULL, NULL)) < 0) {
+		av_strerror(err_code, errors, 1024);
+		av_log(NULL, AV_LOG_DEBUG, "Could not open source file: %s, %d(%s)\n",
+			src_filename,
+			err_code,
+			errors);
+		return;
+	}
+
+	/*retrieve audio stream*/
+	if ((err_code = avformat_find_stream_info(fmt_ctx, NULL)) < 0) {
+		av_strerror(err_code, errors, 1024);
+		av_log(NULL, AV_LOG_DEBUG, "failed to find stream information: %s, %d(%s)\n",
+			src_filename,
+			err_code,
+			errors);
+		return;
+	}
+
+	/*dump input information*/
+	av_dump_format(fmt_ctx, 0, src_filename, 0);
+
+	in_stream = fmt_ctx->streams[1];
+	AVCodecParameters *in_codecpar = in_stream->codecpar;
+	if (in_codecpar->codec_type != AVMEDIA_TYPE_AUDIO) {
+		av_log(NULL, AV_LOG_ERROR, "The Codec type is invalid!\n");
+		exit(1);
+	}
+
+	//out file
+	ofmt_ctx = avformat_alloc_context();
+	output_fmt = av_guess_format(NULL, dst_filename, NULL);
+	if (!output_fmt) {
+		av_log(NULL, AV_LOG_DEBUG, "Cloud not guess file format \n");
+		exit(1);
+	}
+
+	ofmt_ctx->oformat = output_fmt;
+
+	out_stream = avformat_new_stream(ofmt_ctx, NULL);
+	if (!out_stream) {
+		av_log(NULL, AV_LOG_DEBUG, "Failed to create out stream!\n");
+		exit(1);
+	}
+
+	if (fmt_ctx->nb_streams < 2) {
+		av_log(NULL, AV_LOG_ERROR, "the number of stream is too less!\n");
+		exit(1);
+	}
+
+
+	if ((err_code = avcodec_parameters_copy(out_stream->codecpar, in_codecpar)) < 0) {
+		av_strerror(err_code, errors, ERROR_STR_SIZE);
+		av_log(NULL, AV_LOG_ERROR,
+			"Failed to copy codec parameter, %d(%s)\n",
+			err_code, errors);
+	}
+
+	out_stream->codecpar->codec_tag = 0;
+
+	if ((err_code = avio_open(&ofmt_ctx->pb, dst_filename, AVIO_FLAG_WRITE)) < 0) {
+		av_strerror(err_code, errors, 1024);
+		av_log(NULL, AV_LOG_DEBUG, "Could not open file %s, %d(%s)\n",
+			dst_filename,
+			err_code,
+			errors);
+		exit(1);
+	}
+
+
+
+	/*dump output information*/
+	av_dump_format(ofmt_ctx, 0, dst_filename, 1);
+
+
+
+	/*initialize packet*/
+	av_init_packet(&pkt);
+	pkt.data = NULL;
+	pkt.size = 0;
+
+	/*find best audio stream*/
+	audio_stream_index = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+	if (audio_stream_index < 0) {
+		av_log(NULL, AV_LOG_DEBUG, "Could not find %s stream in input file %s\n",
+			av_get_media_type_string(AVMEDIA_TYPE_AUDIO),
+			src_filename);
+		return;
+	}
+
+	if (avformat_write_header(ofmt_ctx, NULL) < 0) {
+		av_log(NULL, AV_LOG_DEBUG, "Error occurred when opening output file");
+		exit(1);
+	}
+
+	/*read frames from media file*/
+	while (av_read_frame(fmt_ctx, &pkt) >= 0) {
+		if (pkt.stream_index == audio_stream_index) {
+			pkt.pts = av_rescale_q_rnd(pkt.pts, in_stream->time_base, out_stream->time_base, AVRounding(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+			pkt.dts = pkt.pts;
+			pkt.duration = av_rescale_q(pkt.duration, in_stream->time_base, out_stream->time_base);
+			pkt.pos = -1;
+			pkt.stream_index = 0;
+			av_interleaved_write_frame(ofmt_ctx, &pkt);
+			av_packet_unref(&pkt);
+		}
+	}
+
+	av_write_trailer(ofmt_ctx);
+
+	/*close input media file*/
+	avformat_close_input(&fmt_ctx);
+	// 	if (dst_fd) {
+	// 		fclose(dst_fd);
+	// 	}
+
+	avio_close(ofmt_ctx->pb);
+
+	return;
 }
+
+void ffmpeg_in_action::getVideoData()
+{
+	int err_code;
+	char errors[1024];
+
+	char *src_filename = NULL;
+	char *dst_filename = NULL;
+
+	FILE *dst_fd = NULL;
+	int video_stream_index = -1;
+
+	AVFormatContext *fmt_ctx = NULL;
+	AVPacket pkt;
+
+	av_log_set_level(AV_LOG_DEBUG);
+
+
+
+	src_filename = "D:\\123.mp4";
+	dst_filename = "D:\\123.h264";
+
+	if (src_filename == NULL || dst_filename == NULL) {
+		av_log(NULL, AV_LOG_DEBUG, "src or dts file is null\n");
+		return;
+	}
+
+	av_register_all();
+	dst_fd = fopen(dst_filename, "wb");
+	if (!dst_fd) {
+		av_log(NULL, AV_LOG_DEBUG, "could not open destination file:%s\n", dst_filename);
+		return;
+	}
+
+	/**open input media file, and allocate format context*/
+	if ((err_code = avformat_open_input(&fmt_ctx, src_filename, NULL, NULL)) < 0) {
+		av_strerror(err_code, errors, 1024);
+		av_log(NULL, AV_LOG_DEBUG, "Could not open source file:%s, %d(%s)\n",
+			src_filename,
+			err_code,
+			errors);
+		return;
+	}
+
+	/**dump input information*/
+	av_dump_format(fmt_ctx, 0, src_filename, 0);
+
+	/**initialize packet*/
+	av_init_packet(&pkt);
+	pkt.data = NULL;
+	pkt.size = 0;
+
+	/**find best video streams*/
+	video_stream_index = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+	if (video_stream_index < 0) {
+		av_log(NULL, AV_LOG_DEBUG, "could not find %s stream in input file %s\n", av_get_media_type_string(AVMEDIA_TYPE_VIDEO),
+			src_filename);
+		return;
+	}
+
+	/**read frames from media file*/
+	while (av_read_frame(fmt_ctx, &pkt) >= 0) {
+		if (pkt.stream_index == video_stream_index) {
+			//h264_mp4toannexb(fmt_ctx, &pkt, dst_fd);
+			bl_decode(fmt_ctx, &pkt, dst_fd);
+		}
+		av_packet_unref(&pkt);
+	}
+
+	/**close input media file*/
+	avformat_close_input(&fmt_ctx);
+	if (dst_fd) {
+		fclose(dst_fd);
+	}
+}
+
 
 void ffmpeg_in_action::on_sdl_play_btn_clicked()
 {
@@ -748,4 +1003,9 @@ void ffmpeg_in_action::on_save_stream_btn_clicked()
 void ffmpeg_in_action::on_cutfile_btn_clicked()
 {
 	cutFile();
+}
+
+void ffmpeg_in_action::on_getVideo_btn_clicked()
+{
+	getVideoData();
 }

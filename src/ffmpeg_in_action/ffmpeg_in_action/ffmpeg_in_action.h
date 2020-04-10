@@ -83,11 +83,15 @@ public:
 	// 抽取音频数据
 	void getAudioData();
 
+	//抽取视频数据
+	void  getVideoData();
+
 
 public slots:
 	void on_sdl_play_btn_clicked();
 	void on_save_stream_btn_clicked();
 	void on_cutfile_btn_clicked();
+	void on_getVideo_btn_clicked();
 private:
 	Ui::ffmpeg_in_actionClass ui;
 

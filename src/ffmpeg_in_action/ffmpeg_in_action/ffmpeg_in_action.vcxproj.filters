@@ -75,5 +75,8 @@
     <None Include="..\..\..\doc\get_audio_date.md">
       <Filter>doc</Filter>
     </None>
+    <None Include="..\..\..\doc\get_video_data.md">
+      <Filter>doc</Filter>
+    </None>
   </ItemGroup>
 </Project>

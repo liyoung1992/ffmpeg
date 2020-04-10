@@ -111,6 +111,7 @@
     <None Include="..\..\..\doc\ffmpeg_primary_develop.md" />
     <None Include="..\..\..\doc\ffmpeg基本概念.md" />
     <None Include="..\..\..\doc\get_audio_date.md" />
+    <None Include="..\..\..\doc\get_video_data.md" />
     <None Include="..\..\..\doc\linux_rtmp_nginx_server.md" />
     <None Include="..\..\..\doc\音视频基本概念.md" />
     <None Include="..\..\..\README.md" />
