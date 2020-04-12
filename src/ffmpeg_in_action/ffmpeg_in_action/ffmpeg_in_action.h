@@ -93,6 +93,9 @@ public:
 	//cut_file
 	int seekCutFile();
 
+	//½âÂëh264 decode
+	int decode_video();
+	int encode_video();
 
 public slots:
 	void on_sdl_play_btn_clicked();
@@ -100,6 +103,7 @@ public slots:
 	void on_cutfile_btn_clicked();
 	void on_getVideo_btn_clicked();
 	void on_mp4flv_btn_clicked();
+	void on_h264_decode_btn_clicked();
 private:
 	Ui::ffmpeg_in_actionClass  ui;
 

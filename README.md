@@ -14,3 +14,4 @@ learn ffmpeg in action
 - [ffmpeg抽取视频数据](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/get_video_data.md)
 - [ffmpeg实现mp4-flv](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/mp4_to_flv.md)
 - [ffmpeg使用av_seek截取文件](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/av_seek_cut_file.md)
+- [ffmpeg h264视频解码](https://github.com/liyoung1992/ffmpeg-in-action/blob/master/doc/decode_video.md)
