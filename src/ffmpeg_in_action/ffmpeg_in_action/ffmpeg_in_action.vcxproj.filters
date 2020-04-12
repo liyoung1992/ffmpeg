@@ -84,5 +84,8 @@
     <None Include="..\..\..\doc\av_seek_cut_file.md">
       <Filter>doc</Filter>
     </None>
+    <None Include="..\..\..\doc\decode_video.md">
+      <Filter>doc</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -104,6 +104,32 @@
     <string>h264解码</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="h264_encode_btn">
+   <property name="geometry">
+    <rect>
+     <x>440</x>
+     <y>200</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>h264编码</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="aac_encode_btn">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>270</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>aac编码</string>
+   </property>
+  </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>

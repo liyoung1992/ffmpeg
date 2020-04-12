@@ -27,6 +27,9 @@ extern "C"
 #include "SDL.h"
 #include "libavutil/log.h"
 #include <libavutil/timestamp.h>
+#include <libavutil/opt.h>
+#include <libavutil/imgutils.h>
+#include <libswresample/swresample.h>
 };
 #else
 //Linux...
@@ -93,9 +96,15 @@ public:
 	//cut_file
 	int seekCutFile();
 
-	//½âÂëh264 decode
+	//±à½âÂëh264 decode
 	int decode_video();
 	int encode_video();
+
+	//±à½âÂëaac
+	int decode_audio();
+	int encode_audio();
+
+
 
 public slots:
 	void on_sdl_play_btn_clicked();
@@ -104,6 +113,8 @@ public slots:
 	void on_getVideo_btn_clicked();
 	void on_mp4flv_btn_clicked();
 	void on_h264_decode_btn_clicked();
+	void on_h264_encode_btn_clicked();
+	void on_aac_encode_btn_clicked();
 private:
 	Ui::ffmpeg_in_actionClass  ui;
 

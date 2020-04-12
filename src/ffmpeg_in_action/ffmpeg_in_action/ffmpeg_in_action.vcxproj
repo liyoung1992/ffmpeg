@@ -108,6 +108,7 @@
   <ItemGroup>
     <None Include="..\..\..\doc\av_seek_cut_file.md" />
     <None Include="..\..\..\doc\cut_file.md" />
+    <None Include="..\..\..\doc\decode_video.md" />
     <None Include="..\..\..\doc\ffmpeg_player_sdl2.md" />
     <None Include="..\..\..\doc\ffmpeg_primary_develop.md" />
     <None Include="..\..\..\doc\ffmpeg基本概念.md" />
